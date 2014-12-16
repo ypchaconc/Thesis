@@ -17,8 +17,8 @@ library("VGAM")
 rm(list = ls())
 
 x<-read.table(file="/home/mirt/Documentos/Thesis/R/Simulaciones/1_kstest.txt" ,header=T,sep="")
-x
-KKModel = function (x, mcmc_size=5, show.iteration=TRUE,
+x<-as.matrix(x)
+KKModel = function (x, mcmc_size=100, show.iteration=TRUE,
                     lambda.alpha.theta = 0.2,
                     lambda.beta.theta = 0.2,
                     
@@ -61,17 +61,17 @@ if (missing(x))
 N <- dim(x)[1]
 I <- dim(x)[2]
 
-
+set.seed(100)
 ##################################################################
 #           global variables
 ##################################################################
 
 # arrays to save the samples with inital values
-alpha.theta.smpl = matrix(0 , nrow = mcmc_size, ncol =1)
-beta.theta.smpl = matrix(0 , nrow = mcmc_size, ncol =1)
-alpha.smpl = matrix(1,nrow = mcmc_size, ncol = I)
- beta.smpl = matrix(0,nrow = mcmc_size, ncol = I)
-theta.smpl = matrix(0,nrow = mcmc_size, ncol = N)
+alpha.theta.smpl <- matrix(0 , nrow = mcmc_size, ncol =1)
+beta.theta.smpl <- matrix(0 , nrow = mcmc_size, ncol =1)
+alpha.smpl <- matrix(1,nrow = mcmc_size, ncol = I)
+ beta.smpl <- matrix(0,nrow = mcmc_size, ncol = I)
+theta.smpl <- matrix(0,nrow = mcmc_size, ncol = N)
 
 # Other global values
 # aceptation rate fot hyperparameter
@@ -175,8 +175,12 @@ for (i in 2:mcmc_size ){
   
   #
   # 0. proposal values to the  latent trait candidates: K(alpha = tao,theta, beta = beta.theta.c)
-    
-  theta.c = sapply(beta.theta.c, FUN = function(l)rkumar(N, shape1=tao.theta, shape2 = l))
+   
+  #theta.c = sapply(beta.theta.c, FUN = function(l)rkumar(N, shape1=tao.theta, shape2 = l))
+  #print("theta.c")
+  #print(theta.c)
+  
+  theta.c<-rkumar(length(beta.theta.c),tao.theta,beta.theta.c)
   print("theta.c")
   print(theta.c)
   #
@@ -186,6 +190,8 @@ for (i in 2:mcmc_size ){
   P = aux^alpha.matrix
   beta.matrix = matrix(beta.smpl[i-1,], N, I, byrow = TRUE)
   P = 1- (1- P)^beta.matrix
+  print("P")
+  print(P)
 
   
   #  log posterior  of each latent trait
@@ -270,7 +276,7 @@ for (i in 2:mcmc_size ){
   
   # 3. log posterior  of each item parameter
   L.pos.num = L.post.num 
-  - matrix(lambda_alpha*alpha.c,I,1)- matrix(lambda_beta*beta.c,I,1)
+  - matrix(lambda.alpha*alpha.c,I,1)- matrix(lambda.beta*beta.c,I,1)
   
  
    ######################################
@@ -288,7 +294,7 @@ for (i in 2:mcmc_size ){
 
   # 3. log posterior  of each item parameter
   L.pos.den = L.post.den - 
-    matrix(lambda_alpha*alpha.smpl[i-1,],I,1)- matrix(lambda_beta*beta.smpl[i-1,],I,1)
+    matrix(lambda.alpha*alpha.smpl[i-1,],I,1)- matrix(lambda.beta*beta.smpl[i-1,],I,1)
 
  
   # alpha
