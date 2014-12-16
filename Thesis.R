@@ -18,7 +18,7 @@ rm(list = ls())
 
 x<-read.table(file="/home/mirt/Documentos/Thesis/R/Simulaciones/1_kstest.txt" ,header=T,sep="")
 x<-as.matrix(x)
-KKModel = function (x, mcmc_size=100, show.iteration=TRUE,
+KKModel = function (x, mcmc_size=76, show.iteration=TRUE,
                     lambda.alpha.theta = 0.2,
                     lambda.beta.theta = 0.2,
                     
@@ -121,9 +121,13 @@ for (i in 2:mcmc_size ){
   # proposal 
   alpha.theta.c = rnorm(1, alpha.theta.smpl[i-1], tao.alpha.theta)
   alpha.theta.c = ifelse(alpha.theta.c > 0, 1, 0)
+  print("alpha.theta.c")
+  print(alpha.theta.c)
   
   beta.theta.c = rnorm(1, beta.theta.smpl[i-1], tao.beta.theta)
   beta.theta.c = ifelse(beta.theta.c > 0, 1, 0)
+  print("beta.theta.c")
+  print(beta.theta.c)
   
   ######################################
   # compute the numerator
@@ -147,6 +151,10 @@ for (i in 2:mcmc_size ){
  
   
   # 
+  print("L.post.num.hyp")
+  print(L.post.num)
+  print("L.post.den.hyp")
+  print(L.post.den)
   alpha = exp(L.post.num - L.post.den)
   alpha = ifelse(alpha>1,1,alpha)
   # test to accept or reject
@@ -155,6 +163,10 @@ for (i in 2:mcmc_size ){
   accept.rate.h = accept.rate.h + sum(accept)
   alpha.theta.c = alpha.theta.smpl[i] =  ifelse(accept[1], alpha.theta.c, alpha.theta.smpl[i-1])
   beta.theta.c = beta.theta.smpl[i] =  ifelse(accept[2], beta.theta.c, beta.theta.smpl[i-1])
+  print("alpha.theta.smpl[i]")
+  print(alpha.theta.smpl[i])
+  print("beta.theta.smpl[i]")
+  print(beta.theta.smpl[i])
   
   #########################################################################
   # latent traits
@@ -168,6 +180,9 @@ for (i in 2:mcmc_size ){
   # beta.theta.c (vector) where theta.c is median
   # alpha same all items
  
+  
+    print("theta.smpl[i-1,]")
+    print(theta.smpl[i-1,])
     beta.theta.c = log(0.5)/log(1-theta.smpl[i-1,]^(tao.theta))
     print("beta.theta.c")
     print(beta.theta.c)
@@ -183,6 +198,9 @@ for (i in 2:mcmc_size ){
   theta.c<-rkumar(length(beta.theta.c),tao.theta,beta.theta.c)
   print("theta.c")
   print(theta.c)
+  print("log(theta.c)")
+  print(log(theta.c))
+  
   #
   # 1. 
   aux = matrix(theta.c,N,I,byrow=FALSE)
@@ -190,8 +208,7 @@ for (i in 2:mcmc_size ){
   P = aux^alpha.matrix
   beta.matrix = matrix(beta.smpl[i-1,], N, I, byrow = TRUE)
   P = 1- (1- P)^beta.matrix
-  print("P")
-  print(P)
+ 
 
   
   #  log posterior  of each latent trait
@@ -234,12 +251,20 @@ for (i in 2:mcmc_size ){
   #
   # alpha
   # maybe, an extra control to avoid division by cero could be neceesary here
+  print("L.post.num")
+  print(L.post.num)
+  print("L.post.den")
+  print(L.post.den)
   alpha = exp(L.post.num - L.post.den)
   alpha = ifelse(alpha>1,1,alpha)
   # test to accept or reject
   accept = ifelse(alpha>runif(N),TRUE,FALSE)
+  print("accept")
+  print(accept)
   accept.rate.t = accept.rate.t + sum(accept)
   theta.c = theta.smpl[i,] = ifelse(accept, theta.c, theta.smpl[i-1,])
+  print("theta.smpl[i,]")
+  print(theta.smpl[i,])
   
   #########################################################################
   # item parameters
