@@ -18,7 +18,10 @@ rm(list = ls())
 
 x<-read.table(file="/home/mirt/Documentos/Thesis/R/Simulaciones/1_kstest.txt" ,header=T,sep="")
 x<-as.matrix(x)
-KKModel = function (x, mcmc_size=76, show.iteration=TRUE,
+
+
+sink(file = "/home/mirt/Documentos/Thesis/R/Simulaciones/Salida.txt", append = FALSE)
+KKModel = function (x, mcmc_size=10000, show.iteration=TRUE,
                     lambda.alpha.theta = 0.2,
                     lambda.beta.theta = 0.2,
                     
@@ -31,6 +34,8 @@ KKModel = function (x, mcmc_size=76, show.iteration=TRUE,
                     
                     lambda.alpha = 0.1, 
                     lambda.beta = 0.1){
+  
+ 
 
 # x: test data
 # mcmc_size: number of samples
@@ -87,14 +92,18 @@ accept.rate.i = 0
 ##################################################################
 # First values in the chains
 
-alpha.theta.smpl[1] = rgamma(1, shape = 1, rate = lambda.alpha.theta)
-beta.theta.smpl[1]  = rgamma(1, shape = 1, rate = lambda.beta.theta)
+alpha.theta.smpl[1] <- rgamma(1, shape = 1, rate = lambda.alpha.theta)+1
+beta.theta.smpl[1]  <- rgamma(1, shape = 1, rate = lambda.beta.theta)+1
 
 theta.smpl[1,] =  rkumar(N, 2, 2.5)
+#' theta.smpl[1,] = c(0.6553446, 0.5162222, 0.5560181, 0.4650583, 0.7123372, 0.6206949, 0.5304183, 0.6704908)
+#'
 
 alpha.smpl[1,] =  rgamma(I, shape =1 , rate = lambda.alpha)
-beta.smpl[1,]  =  rgamma(I, shape =1 , rate = lambda.beta)
+#' alpha.smpl[1,] = c(9.520124, 2.945260, 9.388179, 4.331904, 6.339547,  9.699454, 1.990922, 2.852618 )
 
+beta.smpl[1,]  =  rgamma(I, shape =1 , rate = lambda.beta)
+#' beta.smpl[1, ] = c(38.383173, 4.504091, 171.039472,  18.756477, 5.599223,  70.413845, 2.083811, 1.799235)
 
 # Initial values of proposal distributions
 alpha.theta.c = alpha.theta.smpl[1]
@@ -118,14 +127,18 @@ for (i in 2:mcmc_size ){
   #########################################################################
 
   
-  # proposal 
+  # proposal
   alpha.theta.c = rnorm(1, alpha.theta.smpl[i-1], tao.alpha.theta)
-  alpha.theta.c = ifelse(alpha.theta.c > 0, 1, 0)
+  while (alpha.theta.c < 1){
+    alpha.theta.c = rnorm(1, alpha.theta.smpl[i-1], tao.alpha.theta)
+  }
   print("alpha.theta.c")
   print(alpha.theta.c)
   
   beta.theta.c = rnorm(1, beta.theta.smpl[i-1], tao.beta.theta)
-  beta.theta.c = ifelse(beta.theta.c > 0, 1, 0)
+  while (beta.theta.c <1){
+    beta.theta.c = rnorm(1, beta.theta.smpl[i-1], tao.beta.theta)  
+  }
   print("beta.theta.c")
   print(beta.theta.c)
   
@@ -196,6 +209,7 @@ for (i in 2:mcmc_size ){
   #print(theta.c)
   
   theta.c<-rkumar(length(beta.theta.c),tao.theta,beta.theta.c)
+  #theta.c<-ifelse(theta.c == 1, )
   print("theta.c")
   print(theta.c)
   print("log(theta.c)")
@@ -203,11 +217,11 @@ for (i in 2:mcmc_size ){
   
   #
   # 1. 
-  aux = matrix(theta.c,N,I,byrow=FALSE)
-  alpha.matrix = matrix(alpha.smpl[i-1,], N, I, byrow = TRUE)
-  P = aux^alpha.matrix
-  beta.matrix = matrix(beta.smpl[i-1,], N, I, byrow = TRUE)
-  P = 1- (1- P)^beta.matrix
+  aux <- matrix(theta.c,N,I,byrow=FALSE)
+  alpha.matrix <- matrix(alpha.smpl[i-1,], N, I, byrow = TRUE)
+  P <- aux^alpha.matrix
+  beta.matrix <- matrix(beta.smpl[i-1,], N, I, byrow = TRUE)
+  P <- 1- (1- P)^beta.matrix
  
 
   
@@ -282,25 +296,25 @@ for (i in 2:mcmc_size ){
      
     
   # 0. proposal values
-  alpha.c = rnorm(I, alpha.theta.smpl[i-1], tao.alpha)
-  alpha.c = ifelse(alpha.theta.c > 0, 1, 0)
+  alpha.c <- rnorm(I, alpha.theta.smpl[i-1], tao.alpha)
+  alpha.c <- ifelse(alpha.theta.c > 0, 1, 0)
   
-  beta.c = rnorm(I, beta.theta.smpl[i-1], tao.beta)
-  beta.theta.c = ifelse(beta.theta.c > 0, 1, 0)
+  beta.c <- rnorm(I, beta.theta.smpl[i-1], tao.beta)
+  beta.theta.c <- ifelse(beta.theta.c > 0, 1, 0)
   
     
   # 
-  aux = matrix(theta.smpl[i-1,],N,I,byrow=FALSE)
-  alpha.matrix = matrix(alpha.c, N, I, byrow = TRUE)
-  P = aux^alpha.matrix
-  beta.matrix = matrix(beta.c, N, I, byrow = TRUE)
-  P = 1- (1- P)^beta.matrix
+  aux <- matrix(theta.smpl[i,],N,I,byrow=FALSE)
+  alpha.matrix <- matrix(alpha.c, N, I, byrow = TRUE)
+  P <- aux^alpha.matrix
+  beta.matrix <- matrix(beta.c, N, I, byrow = TRUE)
+  P <- 1- (1- P)^beta.matrix
   
   # 2. log of probability of correct response(KK model)
-  L.post.num = matrix(apply(ifelse(x,log(P),log(1-P)),2,sum),I,1)
+  L.post.num <- matrix(apply(ifelse(x,log(P),log(1-P)),2,sum),I,1)
   
   # 3. log posterior  of each item parameter
-  L.pos.num = L.post.num 
+  L.pos.num <- L.post.num 
   - matrix(lambda.alpha*alpha.c,I,1)- matrix(lambda.beta*beta.c,I,1)
   
  
@@ -308,17 +322,17 @@ for (i in 2:mcmc_size ){
    # compute the denominator
    ######################################
    # 
-   aux = matrix(theta.smpl[i-1,],N,I,byrow=FALSE)
-   alpha.matrix = matrix(alpha.smpl[i-1,], N, I, byrow = TRUE)
-   P = aux^alpha.matrix
-   beta.matrix = matrix(beta.smpl[i-1,], N, I, byrow = TRUE)
-   P = 1- (1- P)^beta.matrix
+   aux <- matrix(theta.smpl[i,],N,I,byrow=FALSE)
+   alpha.matrix <- matrix(alpha.smpl[i-1,], N, I, byrow = TRUE)
+   P <- aux^alpha.matrix
+   beta.matrix <- matrix(beta.smpl[i-1,], N, I, byrow = TRUE)
+   P <-1- (1- P)^beta.matrix
 
    # 2. log of probability of correct response(KK model)
-   L.post.den = matrix(apply(ifelse(x,log(P),log(1-P)),2,sum),I,1)
+   L.post.den <- matrix(apply(ifelse(x,log(P),log(1-P)),2,sum),I,1)
 
   # 3. log posterior  of each item parameter
-  L.pos.den = L.post.den - 
+  L.pos.den <- L.post.den - 
     matrix(lambda.alpha*alpha.smpl[i-1,],I,1)- matrix(lambda.beta*beta.smpl[i-1,],I,1)
 
  
@@ -355,11 +369,13 @@ for (i in 2:mcmc_size ){
   l = list(theta.smpl=theta.smpl, alpha.smpl = alpha.smpl,   beta.smpl = beta.smpl, accept.rate.t= accept.rate.t, accept.rate.i=accept.rate.i)
   l
 
+
+
 }# end irt.Metropolis
 
 
-salida = KKModel(x)
-salida
+salida = KKModel(x, 1250,FALSE)
+sink()
 
 
 
