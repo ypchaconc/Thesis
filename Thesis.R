@@ -29,7 +29,7 @@ KKModel = function (x, mcmc_size=10000, show.iteration=TRUE,
                     tao.alpha.theta = 0.25, 
                     tao.beta.theta = 0.25,
                     
-                    tao.theta = 1, 
+                    tao.theta = 1.7, 
                     tao.alpha = 0.25, 
                     tao.beta=0.2, 
                     
