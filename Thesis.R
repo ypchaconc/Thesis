@@ -12,6 +12,7 @@
 
 
 library("VGAM")
+library("truncnorm")
 
 
 rm(list = ls())
@@ -80,11 +81,11 @@ theta.smpl <- matrix(0,nrow = mcmc_size, ncol = N)
 
 # Other global values
 # aceptation rate fot hyperparameter
-accept.rate.h = 0
+accept.rate.h <- 0
 # aceptation rate for thetas
-accept.rate.t = 0
+accept.rate.t <- 0
 # aceptation rate for items
-accept.rate.i = 0
+accept.rate.i <-  0
 
 
 ##################################################################
@@ -92,25 +93,27 @@ accept.rate.i = 0
 ##################################################################
 # First values in the chains
 
-alpha.theta.smpl[1] <- rgamma(1, shape = 1, rate = lambda.alpha.theta)+1
-beta.theta.smpl[1]  <- rgamma(1, shape = 1, rate = lambda.beta.theta)+1
+#' alpha.theta.smpl[1] <- rgamma(1, shape = 1, rate = lambda.alpha.theta)+1
+   alpha.theta.smpl[1]<- 3.550079
+#' beta.theta.smpl[1]  <- rgamma(1, shape = 1, rate = lambda.beta.theta)+1
+   beta.theta.smpl[1] <- 3.578882
+#' theta.smpl[1,] <-  rkumar(N, 2, 2.5)
+ theta.smpl[1,] <- c(0.4005820, 0.4431548, 0.8576635, 0.2303051, 0.6695738, 0.2109514, 0.5985436, 0.8530140, 0.5262094, 0.5432463,
+ 0.6706297, 0.7652264, 0.2420087, 0.4108703, 0.7592266)
 
-theta.smpl[1,] =  rkumar(N, 2, 2.5)
-#' theta.smpl[1,] = c(0.6553446, 0.5162222, 0.5560181, 0.4650583, 0.7123372, 0.6206949, 0.5304183, 0.6704908)
-#'
 
-alpha.smpl[1,] =  rgamma(I, shape =1 , rate = lambda.alpha)
-#' alpha.smpl[1,] = c(9.520124, 2.945260, 9.388179, 4.331904, 6.339547,  9.699454, 1.990922, 2.852618 )
+#'alpha.smpl[1,] <-  rgamma(I, shape =1 , rate = lambda.alpha)
+  alpha.smpl[1,] <- c(5.659896, 9.643936, 8.094928, 2.363678, 8.427562, 5.114163, 2.016806,  3.213101 )
 
-beta.smpl[1,]  =  rgamma(I, shape =1 , rate = lambda.beta)
-#' beta.smpl[1, ] = c(38.383173, 4.504091, 171.039472,  18.756477, 5.599223,  70.413845, 2.083811, 1.799235)
+#'beta.smpl[1,]  <-  rgamma(I, shape =1 , rate = lambda.beta)
+  beta.smpl[1, ] <- c(19.538143, 136.749479, 18.082965, 3.541975, 119.216549, 5.450085, 1.472441, 1.824756 )
 
 # Initial values of proposal distributions
-alpha.theta.c = alpha.theta.smpl[1]
-beta.theta.c = beta.theta.smpl[1]
-theta.c =  theta.smpl[1,]
-alpha.c =   alpha.smpl[1,]
-beta.c  =   beta.smpl[1,]
+alpha.theta.c <- alpha.theta.smpl[1]
+beta.theta.c <- beta.theta.smpl[1]
+theta.c <-  theta.smpl[1,]
+alpha.c <-   alpha.smpl[1,]
+beta.c  <-   beta.smpl[1,]
 
 ##################################################################
 #           main loop
@@ -128,19 +131,19 @@ for (i in 2:mcmc_size ){
 
   
   # proposal
-  alpha.theta.c = rnorm(1, alpha.theta.smpl[i-1], tao.alpha.theta)
+  alpha.theta.c <- rnorm(1, alpha.theta.smpl[i-1], tao.alpha.theta)
   while (alpha.theta.c < 1){
-    alpha.theta.c = rnorm(1, alpha.theta.smpl[i-1], tao.alpha.theta)
+    alpha.theta.c <- rnorm(1, alpha.theta.smpl[i-1], tao.alpha.theta)
   }
-  print("alpha.theta.c")
-  print(alpha.theta.c)
+  # print("alpha.theta.c")
+  # print(alpha.theta.c)
   
-  beta.theta.c = rnorm(1, beta.theta.smpl[i-1], tao.beta.theta)
+  beta.theta.c <- rnorm(1, beta.theta.smpl[i-1], tao.beta.theta)
   while (beta.theta.c <1){
-    beta.theta.c = rnorm(1, beta.theta.smpl[i-1], tao.beta.theta)  
+    beta.theta.c <- rnorm(1, beta.theta.smpl[i-1], tao.beta.theta)  
   }
-  print("beta.theta.c")
-  print(beta.theta.c)
+  # print("beta.theta.c")
+  # print(beta.theta.c)
   
   ######################################
   # compute the numerator
@@ -148,10 +151,12 @@ for (i in 2:mcmc_size ){
  
   # the prior is exponential with lambda = 0.2
   
-  L.post.num =  -lambda.alpha.theta*alpha.theta.c -lambda.beta.theta*beta.theta.c
+  L.post.num <-  -lambda.alpha.theta*alpha.theta.c -lambda.beta.theta*beta.theta.c
   + N* log(alpha.theta.c)  + N* log(beta.theta.c) 
   + (alpha.theta.c -1 ) * apply(matrix(log(theta.smpl[i-1]), ncol = 1),2 , sum)
   + (beta.theta.c -1) * apply(matrix(log(1- (theta.smpl[i-1])^alpha.theta.c), ncol = 1 ),2, sum)
+  + log(dtruncnorm(alpha.theta.smpl[i-1], 1, Inf, alpha.theta.c, tao.alpha.theta ))
+  + log(dtruncnorm(beta.theta.smpl[i-1], 1, Inf, beta.theta.c, tao.beta.theta ))
   
   ######################################
   # compute the denominator
@@ -161,13 +166,14 @@ for (i in 2:mcmc_size ){
   + N* log(alpha.theta.smpl[i-1])  + N* log(beta.theta.smpl[i-1]) 
   + (alpha.theta.smpl[i-1] -1 ) * apply(matrix(log(theta.smpl[i-1]), ncol = 1),2 , sum)
   + (beta.theta.smpl[i-1] -1) * apply(matrix(log(1- (theta.smpl[i-1])^alpha.theta.smpl[i-1]), ncol = 1 ),2, sum)
- 
+  + log(dtruncnorm(alpha.theta.c, 1, Inf, alpha.theta.smpl[i-1] , tao.alpha.theta ))
+  + log(dtruncnorm(beta.theta.c, 1, Inf,beta.theta.smpl[i-1] , tao.beta.theta ))
   
   # 
-  print("L.post.num.hyp")
-  print(L.post.num)
-  print("L.post.den.hyp")
-  print(L.post.den)
+  # print("L.post.num.hyp")
+  # print(L.post.num)
+  # print("L.post.den.hyp")
+  # print(L.post.den)
   alpha = exp(L.post.num - L.post.den)
   alpha = ifelse(alpha>1,1,alpha)
   # test to accept or reject
@@ -176,10 +182,10 @@ for (i in 2:mcmc_size ){
   accept.rate.h = accept.rate.h + sum(accept)
   alpha.theta.c = alpha.theta.smpl[i] =  ifelse(accept[1], alpha.theta.c, alpha.theta.smpl[i-1])
   beta.theta.c = beta.theta.smpl[i] =  ifelse(accept[2], beta.theta.c, beta.theta.smpl[i-1])
-  print("alpha.theta.smpl[i]")
-  print(alpha.theta.smpl[i])
-  print("beta.theta.smpl[i]")
-  print(beta.theta.smpl[i])
+  # print("alpha.theta.smpl[i]")
+  # print(alpha.theta.smpl[i])
+  # print("beta.theta.smpl[i]")
+  # print(beta.theta.smpl[i])
   
   #########################################################################
   # latent traits
@@ -194,11 +200,11 @@ for (i in 2:mcmc_size ){
   # alpha same all items
  
   
-    print("theta.smpl[i-1,]")
-    print(theta.smpl[i-1,])
+    # print("theta.smpl[i-1,]")
+    # print(theta.smpl[i-1,])
     beta.theta.c = log(0.5)/log(1-theta.smpl[i-1,]^(tao.theta))
-    print("beta.theta.c")
-    print(beta.theta.c)
+    # print("beta.theta.c")
+    # print(beta.theta.c)
   
   
   #
@@ -210,10 +216,10 @@ for (i in 2:mcmc_size ){
   
   theta.c<-rkumar(length(beta.theta.c),tao.theta,beta.theta.c)
   #theta.c<-ifelse(theta.c == 1, )
-  print("theta.c")
-  print(theta.c)
-  print("log(theta.c)")
-  print(log(theta.c))
+  # print("theta.c")
+  # print(theta.c)
+  # print("log(theta.c)")
+  # print(log(theta.c))
   
   #
   # 1. 
@@ -265,20 +271,20 @@ for (i in 2:mcmc_size ){
   #
   # alpha
   # maybe, an extra control to avoid division by cero could be neceesary here
-  print("L.post.num")
-  print(L.post.num)
-  print("L.post.den")
-  print(L.post.den)
+  # print("L.post.num")
+  # print(L.post.num)
+  # print("L.post.den")
+  # print(L.post.den)
   alpha = exp(L.post.num - L.post.den)
   alpha = ifelse(alpha>1,1,alpha)
   # test to accept or reject
   accept = ifelse(alpha>runif(N),TRUE,FALSE)
-  print("accept")
-  print(accept)
+  # print("accept")
+  # print(accept)
   accept.rate.t = accept.rate.t + sum(accept)
   theta.c = theta.smpl[i,] = ifelse(accept, theta.c, theta.smpl[i-1,])
-  print("theta.smpl[i,]")
-  print(theta.smpl[i,])
+  # print("theta.smpl[i,]")
+  # print(theta.smpl[i,])
   
   #########################################################################
   # item parameters
@@ -317,7 +323,11 @@ for (i in 2:mcmc_size ){
   L.pos.num <- L.post.num 
   - matrix(lambda.alpha*alpha.c,I,1)- matrix(lambda.beta*beta.c,I,1)
   
- 
+  # Proposal 
+   
+  L.pos.num <- L.post.num 
+  + log (matrix(dtruncnorm(alpha.smpl[i-1,], 0, Inf, alpha.c, tao.alpha), I, 1))
+  + log (matrix(dtruncnorm(beta.smpl[i-1,], 0, Inf, beta.c, tao.beta), I, 1))
    ######################################
    # compute the denominator
    ######################################
@@ -334,7 +344,11 @@ for (i in 2:mcmc_size ){
   # 3. log posterior  of each item parameter
   L.pos.den <- L.post.den - 
     matrix(lambda.alpha*alpha.smpl[i-1,],I,1)- matrix(lambda.beta*beta.smpl[i-1,],I,1)
-
+  # 4. 
+  L.pos.den <- L.post.den 
+  + log (matrix(dtruncnorm(alpha.c, 0, Inf,  alpha.smpl[i-1,], tao.alpha), I, 1))
+  + log (matrix(dtruncnorm(beta.c, 0, Inf,  beta.smpl[i-1,], tao.beta), I, 1))
+  
  
   # alpha
   # control division by zero P close zero
@@ -364,9 +378,9 @@ for (i in 2:mcmc_size ){
   ####################################
   # return the data
   #######################################
-  accept.rate.t =accept.rate.t/(mcmc_size*N)
-  accept.rate.i =accept.rate.i/(mcmc_size*I)
-  l = list(theta.smpl=theta.smpl, alpha.smpl = alpha.smpl,   beta.smpl = beta.smpl, accept.rate.t= accept.rate.t, accept.rate.i=accept.rate.i)
+  accept.rate.t <- accept.rate.t/(mcmc_size*N)
+  accept.rate.i <- accept.rate.i/(mcmc_size*I)
+  l <-  list(theta.smpl=theta.smpl, alpha.smpl = alpha.smpl,   beta.smpl = beta.smpl, accept.rate.t= accept.rate.t, accept.rate.i=accept.rate.i)
   l
 
 
@@ -374,7 +388,8 @@ for (i in 2:mcmc_size ){
 }# end irt.Metropolis
 
 
-salida = KKModel(x, 1250,FALSE)
+salida = KKModel(x, 10000,TRUE)
+salida
 sink()
 
 
