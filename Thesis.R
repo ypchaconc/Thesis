@@ -26,10 +26,10 @@ KKModel = function (x, mcmc_size=100, show.iteration=TRUE,
                     lambda.alpha.theta = 0.2,
                     lambda.beta.theta = 0.2,
                     
-                    tao.alpha.theta = 0.25, 
-                    tao.beta.theta = 0.25,
+                    tao.alpha.theta = 0.5, 
+                    tao.beta.theta = 0.5,
                     
-                    tao.theta = 0.2, 
+                    tao.theta = 0.1, 
                     tao.alpha = 0.25, 
                     tao.beta=0.2, 
                     
@@ -224,8 +224,9 @@ for (i in 2:mcmc_size ){
   # print(aux)
   
   L.post.den = dkumar(theta.smpl[i-1,], alpha.theta.smpl[i], beta.theta.smpl[i], log = T)
-  + apply(ifelse (x, log(pkumar(aux, alpha.theta.smpl[i], beta.theta.smpl[i])), 
-                  log(1 - pkumar(aux, alpha.theta.smpl[i], beta.theta.smpl[i]))),1,sum)
+  + apply(ifelse (x, log(pkumar(aux, matrix(alpha.smpl[i-1,], N, I, byrow = T), 
+                                matrix(beta.smpl[i-1,], N, I, byrow = T))), 
+                  log(1 - pkumar(aux, alpha.smpl[i-1,], beta.smpl[i-1,]))),1,sum)
   + dkumar(theta.smpl[i-1,], tao.theta, beta.theta.c, log = T)
   
   # print("L.post.den")
@@ -263,41 +264,35 @@ for (i in 2:mcmc_size ){
   
   beta.c = rtruncnorm(I, a = 0, b = Inf, beta.smpl[i-1,], tao.beta)
 
-  
-    
   # 
-  aux = matrix(theta.smpl[i-1,],N,I,byrow=FALSE)
-  alpha.matrix = matrix(alpha.c, N, I, byrow = TRUE)
-  P = aux^alpha.matrix
-  beta.matrix = matrix(beta.c, N, I, byrow = TRUE)
-  P = 1- (1- P)^beta.matrix
+  aux = matrix(theta.smpl[i,],N,I,byrow=FALSE)
   
-  # 2. log of probability of correct response(KK model)
-  L.post.num = matrix(apply(ifelse(x,log(P),log(1-P)),2,sum),I,1)
-  
-  # 3. log posterior  of each item parameter
-  L.pos.num = L.post.num 
-  - matrix(lambda.alpha*alpha.c,I,1)- matrix(lambda.beta*beta.c,I,1)
+  L.post.num <- dexp(alpha.c, lambda.alpha, log = T)
+    + dexp(beta.c, lambda.beta, log = T)
+    + apply (ifelse(x, 
+    log(pkumar(aux, matrix(alpha.c, N, I, byrow = T), matrix(beta.c, N, I, byrow = T))),
+    log(1- pkumar(aux, matrix(alpha.c, N, I, byrow = T), matrix(beta.c, N, I, byrow = T)))), 
+             2, sum)
+    + log(dtruncnorm(alpha.smpl[i-1,], 0, Inf, alpha.c, tao.alpha))
+    + log(dtruncnorm(beta.smpl[i-1,], 0, Inf, beta.c, tao.beta))
   
  
    ######################################
    # compute the denominator
    ######################################
    # 
-   aux = matrix(theta.smpl[i-1,],N,I,byrow=FALSE)
-   alpha.matrix = matrix(alpha.smpl[i-1,], N, I, byrow = TRUE)
-   P = aux^alpha.matrix
-   beta.matrix = matrix(beta.smpl[i-1,], N, I, byrow = TRUE)
-   P = 1- (1- P)^beta.matrix
+   aux = matrix(theta.smpl[i,],N,I,byrow=FALSE)
+  
+  L.post.den <- dexp(alpha.smpl[i-1, ], lambda.alpha, log = T)
+   + dexp(beta.smpl[i-1,], lambda.beta, log = T)
+   + apply (ifelse(x, 
+   log(pkumar(aux, matrix(alpha.smpl[i-1, ], N, I, byrow = T), matrix(beta.smpl[i-1, ], N, I, byrow = T))),
+   log(1-pkumar(aux, matrix(alpha.smpl[i-1, ], N, I, byrow = T), matrix(beta.smpl[i-1, ], N, I, byrow = T)))),
+            2, sum)
+   + log(dtruncnorm(alpha.c, 0, Inf, alpha.smpl[i-1, ], tao.alpha))
+   + log(dtruncnorm(beta.c, 0, Inf, beta.smpl[i-1, ], tao.beta))
 
-   # 2. log of probability of correct response(KK model)
-   L.post.den = matrix(apply(ifelse(x,log(P),log(1-P)),2,sum),I,1)
-
-  # 3. log posterior  of each item parameter
-  L.pos.den = L.post.den - 
-    matrix(lambda.alpha*alpha.smpl[i-1,],I,1)- matrix(lambda.beta*beta.smpl[i-1,],I,1)
-
- 
+  
   # alpha
   # control division by zero P close zero
   alpha = exp(L.post.num - L.post.den)
@@ -326,7 +321,7 @@ for (i in 2:mcmc_size ){
   ####################################
   # return the data
   #######################################
-  accept.rate.h =accept.rate.h/(mcmc_size)
+  accept.rate.h =accept.rate.h/(mcmc_size*2)
   accept.rate.t =accept.rate.t/(mcmc_size*N)
   accept.rate.i =accept.rate.i/(mcmc_size*I)
   l = list(theta.smpl=theta.smpl, alpha.smpl = alpha.smpl,   beta.smpl = beta.smpl, accept.rate.h = accept.rate.h, accept.rate.t= accept.rate.t, accept.rate.i=accept.rate.i)
@@ -335,7 +330,7 @@ for (i in 2:mcmc_size ){
 }# end irt.Metropolis
 
 
-salida = KKModel(x, 1000)
+salida = KKModel(x, 10000)
 salida
 
 sink()
