@@ -13,6 +13,8 @@
 
 library("VGAM")
 library("truncnorm")
+library(car)
+library(coda)
 
 
 rm(list = ls())
@@ -29,12 +31,12 @@ KKModel = function (x, mcmc_size=100, show.iteration=TRUE,
                     tao.alpha.theta = 0.5, 
                     tao.beta.theta = 0.5,
                     
-                    tao.theta = 0.1, 
+                    tao.theta = 1, 
                     tao.alpha = 0.25, 
-                    tao.beta=0.2, 
+                    tao.beta=0.25, 
                     
-                    lambda.alpha = 0.1, 
-                    lambda.beta = 0.1){
+                    lambda.alpha = 0.2, 
+                    lambda.beta = 0.2){
 
 # x: test data
 # mcmc_size: number of samples
@@ -117,6 +119,7 @@ theta.c <-  theta.smpl[1,]
 alpha.c <-  alpha.smpl[1,]
 beta.c  <-  beta.smpl[1,]
 
+
 ##################################################################
 #           main loop
 ##################################################################
@@ -144,7 +147,7 @@ for (i in 2:mcmc_size ){
   
   # the prior is exponential with lambda = 0.2
   
-  L.post.num =  dexp(alpha.theta.c , lambda.alpha.theta, log = TRUE)
+  L.post.num <-  dexp(alpha.theta.c , lambda.alpha.theta, log = TRUE)
   + dexp(beta.theta.c, lambda.beta.theta, log = TRUE)
   + sum(dkumar(theta.smpl[i-1], alpha.theta.c, beta.theta.c, log = TRUE))
   + log(dtruncnorm(alpha.theta.smpl[i-1], 1, Inf, alpha.theta.c, tao.alpha.theta))
@@ -154,19 +157,18 @@ for (i in 2:mcmc_size ){
   # compute the denominator
   ######################################
   
-  L.post.den = dexp(alpha.theta.smpl[i-1], lambda.alpha.theta, log = TRUE)
+  L.post.den <- dexp(alpha.theta.smpl[i-1], lambda.alpha.theta, log = TRUE)
   + dexp(beta.theta.smpl[i-1], lambda.beta.theta, log = T)
   + sum(dkumar(theta.smpl[i-1], alpha.theta.smpl[i-1], beta.theta.smpl[i-1], log = T))
   + log(dtruncnorm(alpha.theta.c, 1, Inf, alpha.theta.smpl[i-1], tao.alpha.theta))
   + log(dtruncnorm(beta.theta.c, 1, Inf, beta.theta.smpl[i-1], tao.beta.theta))
   
-  # 
+  
   alpha <- exp(L.post.num - L.post.den)
   alpha <- ifelse(alpha>1,1,alpha)
-  
+
   # test to accept or reject
   accept <- ifelse(alpha>runif(2),TRUE,FALSE)
-  accept
   accept.rate.h <- accept.rate.h + sum(accept)
   alpha.theta.c = alpha.theta.smpl[i] =  ifelse(accept[1], alpha.theta.c, alpha.theta.smpl[i-1])
   beta.theta.c = beta.theta.smpl[i] =  ifelse(accept[2], beta.theta.c, beta.theta.smpl[i-1])
@@ -183,51 +185,43 @@ for (i in 2:mcmc_size ){
   ######################################
   # compute the numerator
   ######################################
-  # the prior of each theta is kumara(theta, alpha.theta, beta.theta)
   
-  # beta.theta.c (vector) where theta.c is median
-  # alpha same all items
-    print("theta.smpl[i-1,]")
-    print(theta.smpl[i-1,])
-    beta.theta.c <- log(0.5)/log(1-theta.smpl[i-1,]^(tao.theta))
-    print("beta.theta.c")
-    print(beta.theta.c)
-    
-  # 0. proposal values to the  latent trait candidates: K(alpha = tao,theta, beta = beta.theta.c)
+  # the prior of each theta is kumara(theta, alpha.theta, beta.theta)
+      
+  # the proposal values to the  latent trait candidates: K(alpha = tao,theta, beta = beta.theta.c)
    
   theta.c<-rkumar(length(beta.theta.c),tao.theta,beta.theta.c)
   while(theta.c == 0 || theta.c ==1){
     theta.c<-rkumar(length(beta.theta.c),tao.theta,beta.theta.c)
   }
   
-  print("theta.c")
-  print(theta.c)
-  #
-  # 1. 
+  # beta.theta.c (vector) where theta.c is median
+  # beta.theta.c <- log(0.5)/log(1-theta.c^(tao.theta))
+  # alpha same all items
   
-
   aux <- matrix(theta.c,N,I,byrow=FALSE)
   
   L.post.num <- dkumar(theta.c, alpha.theta.smpl[i], beta.theta.smpl[i], log = T)
-  + apply(ifelse (x, log(pkumar(aux, alpha.theta.smpl[i], beta.theta.smpl[i])), 
-                  log(1 - pkumar(aux, alpha.theta.smpl[i], beta.theta.smpl[i]))),1,sum)
-  + dkumar(theta.c, tao.theta, beta.theta.c, log = T)
+  + apply(ifelse (x, log(pkumar(aux, matrix(alpha.smpl[i,], N, I, byrow = T), 
+                                matrix(beta.smpl[i,], N, I, byrow = T))), 
+                  log(1 - pkumar(aux, alpha.smpl[i,], beta.smpl[i-1,]))),1,sum)
+  + dkumar(theta.smpl[i-1,], tao.theta, log(0.5)/log(1-theta.c^(tao.theta)), log = T)
 
   
     
   ######################################
   # compute the denominator
   ######################################
-  # 1. 
-  aux = matrix(theta.smpl[i-1,],N,I,byrow=FALSE)
+
+  aux <- matrix(theta.smpl[i-1,],N,I,byrow=FALSE)
   # print("aux")
   # print(aux)
   
-  L.post.den = dkumar(theta.smpl[i-1,], alpha.theta.smpl[i], beta.theta.smpl[i], log = T)
-  + apply(ifelse (x, log(pkumar(aux, matrix(alpha.smpl[i-1,], N, I, byrow = T), 
-                                matrix(beta.smpl[i-1,], N, I, byrow = T))), 
-                  log(1 - pkumar(aux, alpha.smpl[i-1,], beta.smpl[i-1,]))),1,sum)
-  + dkumar(theta.smpl[i-1,], tao.theta, beta.theta.c, log = T)
+  L.post.den <- dkumar(theta.smpl[i-1,], alpha.theta.smpl[i], beta.theta.smpl[i], log = T)
+  + apply(ifelse (x, log(pkumar(aux, matrix(alpha.smpl[i,], N, I, byrow = T), 
+                                matrix(beta.smpl[i,], N, I, byrow = T))), 
+                  log(1 - pkumar(aux, alpha.smpl[i,], beta.smpl[i-1,]))),1,sum)
+  + dkumar(theta.c, tao.theta, log(0.5)/log(1-theta.smpl[i-1,]^(tao.theta)), log = T)
   
   # print("L.post.den")
   # print(L.post.den)
@@ -238,8 +232,11 @@ for (i in 2:mcmc_size ){
   alpha = exp(L.post.num - L.post.den)
   alpha = ifelse(alpha>1,1,alpha)
   # test to accept or reject
-  accept = ifelse(alpha>runif(N),TRUE,FALSE)
-  accept.rate.t = accept.rate.t + sum(accept)
+  
+  accept <- ifelse(alpha>runif(N),TRUE,FALSE)
+  
+  accept.rate.t <- accept.rate.t + sum(accept)
+
   theta.c = theta.smpl[i,] = ifelse(accept, theta.c, theta.smpl[i-1,])
   print("theta.smpl[i,]")
   print(theta.smpl[i,])
@@ -248,24 +245,24 @@ for (i in 2:mcmc_size ){
   # item parameters
   ###################################
   ######################################
-  # proposal of alpha is normal(alpha.smpl[i-1, ], tao.alpha)
-  # proposal of beta is gamma(beta.smpl[i-1,], tao.beta)
+  # proposal of alpha is trunnormal(alpha.smpl[i-1, ], tao.alpha)
+  # proposal of beta is truncnorm(beta.smpl[i-1,], tao.beta)
   #
   # priors
-  # prior of alpha is exponencial(lambda.alpha = 0.1)
-  # prior of beta  is exponencial(lambda.beta = 0.1)
+  # prior of alpha is exponencial(lambda.alpha = 0.2)
+  # prior of beta  is exponencial(lambda.beta = 0.2)
   ######################################
   # compute the numerator
   ######################################
      
     
   # 0. proposal values
-  alpha.c = rtruncnorm(I, a = 0, b = Inf, alpha.smpl[i-1,], tao.alpha)
+  alpha.c <- rtruncnorm(I, a = 0, b = Inf, alpha.smpl[i-1,], tao.alpha)
   
-  beta.c = rtruncnorm(I, a = 0, b = Inf, beta.smpl[i-1,], tao.beta)
+  beta.c <- rtruncnorm(I, a = 0, b = Inf, beta.smpl[i-1,], tao.beta)
 
   # 
-  aux = matrix(theta.smpl[i,],N,I,byrow=FALSE)
+  aux <- matrix(theta.smpl[i,],N,I,byrow=FALSE)
   
   L.post.num <- dexp(alpha.c, lambda.alpha, log = T)
     + dexp(beta.c, lambda.beta, log = T)
@@ -281,7 +278,7 @@ for (i in 2:mcmc_size ){
    # compute the denominator
    ######################################
    # 
-   aux = matrix(theta.smpl[i,],N,I,byrow=FALSE)
+   # aux = matrix(theta.smpl[i,],N,I,byrow=FALSE)
   
   L.post.den <- dexp(alpha.smpl[i-1, ], lambda.alpha, log = T)
    + dexp(beta.smpl[i-1,], lambda.beta, log = T)
@@ -299,8 +296,9 @@ for (i in 2:mcmc_size ){
   alpha = ifelse(alpha>1,1,alpha)
   # test to accept or reject
   accept = ifelse(alpha>runif(I),TRUE,FALSE)
-  accept.rate.i = accept.rate.i + sum(accept)    
-
+  accept.rate.i <- accept.rate.i + sum(accept)
+  
+    
   alpha.c = alpha.smpl[i,] =  ifelse(accept, alpha.c, alpha.smpl[i-1,])
   beta.c = beta.smpl[i,] =  ifelse(accept, beta.c, beta.smpl[i-1,])
   
@@ -324,16 +322,23 @@ for (i in 2:mcmc_size ){
   accept.rate.h =accept.rate.h/(mcmc_size*2)
   accept.rate.t =accept.rate.t/(mcmc_size*N)
   accept.rate.i =accept.rate.i/(mcmc_size*I)
-  l = list(theta.smpl=theta.smpl, alpha.smpl = alpha.smpl,   beta.smpl = beta.smpl, accept.rate.h = accept.rate.h, accept.rate.t= accept.rate.t, accept.rate.i=accept.rate.i)
+  l <-  list(alpha.theta.smpl=alpha.theta.smpl, beta.theta.smpl=beta.theta.smpl, theta.smpl=theta.smpl,alpha.smpl = alpha.smpl, beta.smpl = beta.smpl, accept.rate.h = accept.rate.h, accept.rate.t= accept.rate.t, accept.rate.i= accept.rate.i)
   l
 
 }# end irt.Metropolis
 
 
-salida = KKModel(x, 10000)
+salida <- KKModel(x, 10000, show.iteration = F, lambda.alpha.theta = 0.2, lambda.beta.theta = 0.2, 
+                 tao.alpha.theta = 10,tao.beta.theta = 200, tao.theta = 1.55, tao.alpha = 1, tao.beta = 1)
 salida
 
 sink()
 
+x11()
+par(mfrow=c(1,3))
 
+  plot(as.ts(salida$beta.theta.smpl),cex.main=0.9,ylab="",xlab="iterations")
+  autocorr.plot(mcmc(salida$beta.theta.smpl),cex.main=0.9, col="red", lwd=2, auto.layout=FALSE ,lag.max=1000)
+  plot(density(salida$beta.theta.smpl),cex.main=0.9, col="red", lwd=2)
 
+salida$accept.rate.h
