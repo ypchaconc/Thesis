@@ -22,7 +22,7 @@ rm(list = ls())
 x<-read.table(file="/home/mirt/Documentos/Thesis/R/Simulaciones/1_kstest.txt" ,header=T,sep="")
 x<-as.matrix(x)
 
-# sink("/home/mirt/Documentos/Thesis/R/Simulaciones/Salida.txt")
+sink("/home/mirt/Documentos/Thesis/R/Simulaciones/Salida.txt")
 
 KKModel = function (x, mcmc_size=10, show.iteration=TRUE,
                     var.alpha.theta = 100,
@@ -100,7 +100,8 @@ accept.rate.beta <- rep(0, I)
   beta.theta.smpl[1] <- 2.557957
 
 # theta.smpl[1,] <-  rkumar(N, 2, 2.5)
-  theta.smpl[1,] <- c(0.5255650, 0.6086310, 0.7127212, 0.1388326, 0.6998396, 0.6875798, 0.8943026, 0.5486967, 0.6072473, 0.5092753, 
+  theta.smpl[1,] <- c(0.5255650, 0.6086310, 0.7127212, 0.1388326,0.6998396, 
+                      0.6875798,0.8943026, 0.5486967, 0.6072473, 0.5092753, 
                       0.4812270, 0.8025894, 0.7803526, 0.3986964, 0.4242609)
   
 
@@ -113,6 +114,7 @@ accept.rate.beta <- rep(0, I)
 
 
 # Initial values of proposal distributions
+
 alpha.theta.c <- alpha.theta.smpl[1]
 beta.theta.c <- beta.theta.smpl[1]
 theta.c <-  theta.smpl[1,]
@@ -275,9 +277,9 @@ for (i in 2:mcmc_size ){
      
     
   # 0. proposal values
-  alpha.c <- rtruncnorm(I, a = 0, b = Inf, alpha.smpl[i-1,], tao.alpha)
+  alpha.c <- rtruncnorm(I, a = 1, b = Inf, alpha.smpl[i-1,], tao.alpha)
   
-  beta.c <- rtruncnorm(I, a = 0, b = Inf, beta.smpl[i-1,], tao.beta)
+  beta.c <- rtruncnorm(I, a = 1, b = Inf, beta.smpl[i-1,], tao.beta)
 
   # 
   aux <- matrix(theta.smpl[i,],N,I,byrow=FALSE)
@@ -287,7 +289,7 @@ for (i in 2:mcmc_size ){
     log(pkumar(aux, matrix(alpha.c, N, I, byrow = T), matrix(beta.c, N, I, byrow = T))),
     log(1- pkumar(aux, matrix(alpha.c, N, I, byrow = T), matrix(beta.c, N, I, byrow = T)))), 
              2, sum)
-    + log(dtruncnorm(alpha.smpl[i-1,], 0, Inf, alpha.c, tao.alpha))
+    + log(dtruncnorm(alpha.smpl[i-1,], 1, Inf, alpha.c, tao.alpha))
     
    
   L.post.num.beta <- dgamma(beta.c,  shape = 1/var.beta, rate = 1/var.beta, log = T)
@@ -295,7 +297,7 @@ for (i in 2:mcmc_size ){
                   log(pkumar(aux, matrix(alpha.c, N, I, byrow = T), matrix(beta.c, N, I, byrow = T))),
                   log(1- pkumar(aux, matrix(alpha.c, N, I, byrow = T), matrix(beta.c, N, I, byrow = T)))), 
            2, sum)
-    + log(dtruncnorm(beta.smpl[i-1,], 0, Inf, beta.c, tao.beta))
+    + log(dtruncnorm(beta.smpl[i-1,], 1, Inf, beta.c, tao.beta))
   
    ######################################
    # compute the denominator
@@ -309,7 +311,7 @@ for (i in 2:mcmc_size ){
    log(pkumar(aux, matrix(alpha.smpl[i-1, ], N, I, byrow = T), matrix(beta.smpl[i-1, ], N, I, byrow = T))),
    log(1-pkumar(aux, matrix(alpha.smpl[i-1, ], N, I, byrow = T), matrix(beta.smpl[i-1, ], N, I, byrow = T)))),
             2, sum)
-   + log(dtruncnorm(alpha.c, 0, Inf, alpha.smpl[i-1, ], tao.alpha))
+   + log(dtruncnorm(alpha.c, 1, Inf, alpha.smpl[i-1, ], tao.alpha))
    
  
   L.post.den.beta <- dgamma(beta.smpl[i-1,],  shape = 1/var.beta, rate = 1/var.beta, log = T)
@@ -372,14 +374,16 @@ for (i in 2:mcmc_size ){
 }# end irt.Metropolis
 
 sink()
-salida <- KKModel(x, 10000, show.iteration = F, 
+salida <- KKModel(x, 100000, show.iteration = F, 
                   var.alpha.theta = 1000, var.beta.theta = 1000, 
                   tao.alpha.theta = 5,tao.beta.theta = 5, 
-                  tao.theta = 1.55, 
+                  tao.theta = 10, 
                   var.alpha = 1000, var.beta = 1000,
                   tao.alpha = 5, tao.beta = 5)
 salida
 
+
+salida$accept.rate.i
 
 
 
