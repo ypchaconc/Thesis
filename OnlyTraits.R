@@ -21,9 +21,9 @@ rm(list = ls())
 x<-read.table(file="/home/mirt/Documentos/Thesis/R/Simulaciones/1_kstest.txt" ,header=T,sep="")
 x<-as.matrix(x)
 
-sink("/home/mirt/Documentos/Thesis/R/Simulaciones/SalidaOnlyTraits.txt")
+# sink("/home/mirt/Documentos/Thesis/R/Simulaciones/SalidaOnlyTraits.txt")
 
-KKModel = function (x, mcmc_size=10, show.iteration=TRUE,
+KKModel = function (x, mcmc_size=2, show.iteration=TRUE,
                     var.alpha.theta = 100,
                     var.beta.theta = 100,
                     
@@ -81,23 +81,21 @@ KKModel = function (x, mcmc_size=10, show.iteration=TRUE,
   # First values in the chains
   
   # alpha.theta.smpl[1] <-  rgamma(1, shape = 1, rate = lambda.alpha.theta)+1
-  alpha.theta.smpl[1] <-  2.315169
+  alpha.theta.smpl[1] <-   4.938939
   
   # beta.theta.smpl[1]  <-  rgamma(1, shape = 1, rate = lambda.beta.theta)+1
-  beta.theta.smpl[1] <- 2.557957
+  beta.theta.smpl[1] <- 6.696828
+  
   
   # theta.smpl[1,] <-  rkumar(N, 2, 2.5)
-  theta.smpl[1,] <- c(0.5255650, 0.6086310, 0.7127212, 0.1388326,0.6998396, 
-                      0.6875798,0.8943026, 0.5486967, 0.6072473, 0.5092753, 
-                      0.4812270, 0.8025894, 0.7803526, 0.3986964, 0.4242609)
-  
+  theta.smpl[1,] <- c(t(read.csv(file = "/home/mirt/Documentos/Thesis/R/Simulaciones/theta.csv")))
+
   
   # alpha.smpl <-   rgamma(I, shape =1 , rate = lambda.alpha)
-  alpha.smpl<- c( 5.756020, 7.187109, 6.411305, 3.338797, 8.248473, 7.532518, 1.968525, 7.761372)
+  alpha.smpl<- c(t(read.csv(file = "/home/mirt/Documentos/Thesis/R/Simulaciones/alpha.csv")))
   
   # beta.smpl  <-  rgamma(I, shape =1 , rate = lambda.beta)
-  beta.smpl <- c(218.423876, 2181.820969, 550.650100, 1.510153, 9500.053667, 19.213044, 1.917371, 225.858270)
-  
+  beta.smpl <- c(t(read.csv(file = "/home/mirt/Documentos/Thesis/R/Simulaciones/beta.csv")))
   
   
   # Initial values of proposal distributions
@@ -278,8 +276,8 @@ KKModel = function (x, mcmc_size=10, show.iteration=TRUE,
   
 }# end irt.Metropolis
 
-sink()
-salida <- KKModel(x, 10000, show.iteration = F, 
+# sink()
+salida <- KKModel(x, 5, show.iteration = F, 
                   var.alpha.theta = 1000, var.beta.theta = 1000, 
                   tao.alpha.theta = 50,tao.beta.theta = 50, 
                   tao.theta = 10
