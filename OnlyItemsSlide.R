@@ -73,7 +73,7 @@ KKModel = function (x, mcmc_size=2, show.iteration=TRUE,
   accept.rate.h <- c(0,0)
   # aceptation rate for thetas
   accept.rate.t <- rep(0, N)
-
+  
   
   ##################################################################
   #           initial values
@@ -89,7 +89,7 @@ KKModel = function (x, mcmc_size=2, show.iteration=TRUE,
   
   # theta.smpl[1,] <-  rkumar(N, 2, 2.5)
   theta.smpl[1,] <- c(t(read.csv(file = "/home/mirt/Documentos/Thesis/R/Simulaciones/theta.csv")))
-
+  
   
   # alpha.smpl <-   rgamma(I, shape =1 , rate = lambda.alpha)
   alpha.smpl<- c(t(read.csv(file = "/home/mirt/Documentos/Thesis/R/Simulaciones/alpha.csv")))
@@ -273,7 +273,7 @@ KKModel = function (x, mcmc_size=2, show.iteration=TRUE,
              theta.smpl=theta.smpl,
              accept.rate.h = accept.rate.h, 
              accept.rate.t= accept.rate.t
-             )
+  )
   l
   
 }# end irt.Metropolis
@@ -283,11 +283,10 @@ salida <- KKModel(x, 1000, show.iteration = F,
                   var.alpha.theta = 1000, var.beta.theta = 1000, 
                   tao.alpha.theta = 50,tao.beta.theta = 50, 
                   tao.theta = 10
-                  )
+)
 salida
 
 
 salida$accept.rate.i
 
 salida$accept.rate.h
-

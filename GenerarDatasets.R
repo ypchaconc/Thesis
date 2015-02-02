@@ -6,6 +6,7 @@ rm(list = ls())
 setwd("/home/mirt/Documentos/Thesis/R/Simulaciones")
 
 library("VGAM")
+library("moments")
 
 
 # numero ind
@@ -13,9 +14,10 @@ n<-1000
 # numero items
 nitem<-50
 # numero de tests
-ntest<-2
+ntest<-1
 
-set.seed(200)
+#
+set.seed(50)
 wt<-runif(1, .2, .8)
 
 at<-runif(1, 1, 10)
@@ -29,6 +31,7 @@ abline(v=qkumar(.15,at,bt))
 abline(v=qkumar(.85,at,bt))
 
 # simular trazo
+set.seed(60)
 theta<- rkumar(n, shape1= at,shape2= bt)
 print("theta")
 print(theta)
@@ -36,11 +39,12 @@ summary(theta)
 
 plot(density(theta))
 (meanKumar<- (bt *(gamma(1 + 1/at))*gamma(bt))/(gamma(1 + bt + 1/at) ) )
-
+points(x,dkumar(x,at,bt),type="l")
 #################
 # items
 #################
 
+set.seed(880)
 (w<-runif(nitem,qkumar(.15,at,bt),qkumar(.85,at,bt)))
 alpha<-runif(nitem, 1, 10)
 # beta<- runif(nitem, 1, 10)
@@ -54,17 +58,33 @@ beta<-log(.5)/log(1-w^(alpha))
 ################
 # Poner labels a estas curvas para analizar comportamiento
 
+
 plot(x,pkumar(x,alpha[1],beta[1]),type="l",col=rainbow(length(beta))[1])
 for(i in 2:length(beta)){
   points(x,pkumar(x,alpha[i],beta[i]),type="l",col=rainbow(length(beta))[i])
 }
 
 x11()
-plot(x,dkumar(x,alpha[1],beta[1]),type="l",col=rainbow(length(beta))[1], ylim = c(0, 15), )
+names <- seq(from = 1, to = nitem, by = 1 )
+y <- seq(from = 1, to = 10,by = 15)
+valKurt = rep(0,nitem)
+muestra = dkumar(x,alpha[1],beta[1])
+valKurt[1] = kurtosis(muestra)
+plot(x,muestra,type="l",col=rainbow(length(beta))[1], ylim = c(0, 15), )
 for(i in 2:length(beta)){
+  muestra = dkumar(x,alpha[i],beta[i])
+  valKurt[i] = kurtosis(muestra)
   points(x,dkumar(x,alpha[i],beta[i]),type="l",col=rainbow(length(beta))[i])
- }
+   }
 
+
+fixed.parameter <- 
+  fixed.alpha <-
+  fixed.beta <-
+  
+
+# Analizado el apuntamiento de las distribuciones.
+data.frame(alpha,beta,valKurt)
 
 ####matrices para calcular P(Yij=1|theta y pitem)
 tm<-theta%*%t(rep(1,nitem))
@@ -86,6 +106,8 @@ for(i in 1:length(rtest)){
   names(cnt)<-1:dim(rtest[[i]])[1]
   rtest[[i]]<-rtest[[i]][-c(as.numeric(names(cnt[cnt==0 | cnt==1]))),]
 }
+
+
 
 ###para generar los test y exportarlos a archivo de texto
 for(i in 1:ntest){
@@ -110,7 +132,7 @@ for(i in 1:ntest){
   
   #exporta tabla
   write.table(tabla, 
-              file = paste(i,"_kstest.csv",sep=""), sep = " ",row.names=F)
+              file = paste(i,"_kstest.txt",sep=""), sep = " ",row.names=F)
 }
 
 
@@ -121,10 +143,14 @@ mean(sapply(1:ntest,function(i)rtest[[i]][8,4]))
 ps[8,4]
 
 
-sink("/home/mirt/Documentos/Thesis/R/param.txt", append = F)
-at
-bt
-pitem
-theta
-sink()
+# sink("/home/mirt/Documentos/Thesis/R/Simulaciones", append = F)
+write.csv(theta, file = "theta.csv", row.names = F)
+write.csv(alpha, file = "alpha.csv", row.names = F)
+write.csv(beta, file = "beta.csv", row.names = F)
+# sink()
+
+
+
+
+
 
