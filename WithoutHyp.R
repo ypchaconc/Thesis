@@ -249,7 +249,7 @@ KKModel = function (x, mcmc_size=10, show.iteration=TRUE,
     
     # test to accept or reject
     accept <- ifelse(alpha>runif(I),TRUE,FALSE)
-    accept.rate.i <- accept.rate.i + accept
+    accept.rate.i <- accept.rate.i + sum(accept)
     
     
     
@@ -289,7 +289,7 @@ KKModel = function (x, mcmc_size=10, show.iteration=TRUE,
 salida <- KKModel(x, 1000, show.iteration = F, 
                   tao.theta = 10, 
                   var.alpha = 1000, var.beta = 1000,
-                  tao.alpha = 50, tao.beta = 50
+                  tao.alpha = 0.2, tao.beta = 0.2
                 )
 salida
 
