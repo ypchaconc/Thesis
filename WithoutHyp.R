@@ -287,9 +287,9 @@ KKModel = function (x, mcmc_size=10, show.iteration=TRUE,
 
 # sink()
 salida <- KKModel(x, 1000, show.iteration = F, 
-                  tao.theta = 10, 
+                  tao.theta = 1, 
                   var.alpha = 1000, var.beta = 1000,
-                  tao.alpha = 0.2, tao.beta = 0.2
+                  tao.alpha = 100, tao.beta = 100
                 )
 salida
 
@@ -297,33 +297,4 @@ salida
 salida$accept.rate.i
 
 
-# Recuperación de parámetros
 
-N<-dim(salida$theta)[2]
-theta <- rep(0, N)
-for ( i in 1:N){
-  theta[i]<- mean(salida$theta.smpl[,i])
-}
-ThetaPobl<- c(t(read.csv(file = "/home/mirt/Documentos/Thesis/R/Simulaciones/theta.csv")))
-dif<- max(theta - ThetaPobl)
-dif
-
-
-I<-dim(salida$alpha.smpl)[2]
-alpha <- rep(0, I)
-for ( i in 1:I){
-  alpha[i]<- mean(salida$alpha.smpl[,i])
-}
-alphaPobl<- c(t(read.csv(file = "/home/mirt/Documentos/Thesis/R/Simulaciones/alpha.csv")))
-difAlpha<- max(alpha - alphaPobl)
-difAlpha
-
-
-
-beta <- rep(0, I)
-for ( i in 1:I){
-  beta[i]<- mean(salida$beta.smpl[,i])
-}
-betaPobl<- c(t(read.csv(file = "/home/mirt/Documentos/Thesis/R/Simulaciones/beta.csv")))
-difBeta<- max(beta - betaPobl)
-difBeta
