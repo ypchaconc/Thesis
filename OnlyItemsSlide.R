@@ -1,10 +1,12 @@
+
+
 ###################################
 # Universidad Nacional de Colombia
 # Yuli Chacon
 # Director A. Montenegro
 # Algoritmo MH
 # Modelo KK
-# Estimación de los trazos, parámetros de ítems fijos.
+# Estimación de los parámetros de los ítems, habilidades fijas.
 ###################################
 
 # utilities libraries
@@ -21,16 +23,8 @@ rm(list = ls())
 x<-read.table(file="/home/mirt/Documentos/Thesis/R/Simulaciones/1_kstest.txt" ,header=T,sep="")
 x<-as.matrix(x)
 
-# sink("/home/mirt/Documentos/Thesis/R/Simulaciones/SalidaOnlyTraits.txt")
+# sink("/home/mirt/Documentos/Thesis/R/Simulaciones/SalidaOnlyItems.txt")
 
-KKModel = function (x, mcmc_size=2, show.iteration=TRUE,
-                    var.alpha.theta = 100,
-                    var.beta.theta = 100,
-                    
-                    tao.alpha.theta = 0.5, 
-                    tao.beta.theta = 0.5,
-                    
-                    tao.theta = 1 ){
   
   # x: test data
   # mcmc_size: number of samples
@@ -41,14 +35,16 @@ KKModel = function (x, mcmc_size=2, show.iteration=TRUE,
   # alpha.theta: prior distribution parameter theta
   # beta.theta: prior distribution parameter theta
   # tao.theta: d  tunning parameter for latent traits (proposal)
-  
+  # tao.alpha: tunning parameter for the alpha parameter
+  # tao.beta: tunning parameter for the beta parameter
+  # lambda.alpha: parameter prior distribution
+  # lambda.beta: parameter prior distribution
   
   
   #############################################################
   #               control section
   #############################################################
-  if (missing(x))
-  {stop(" array x containig the sample must be specified...")}
+ 
   
   ##################################################################
   #              global constants
@@ -58,235 +54,76 @@ KKModel = function (x, mcmc_size=2, show.iteration=TRUE,
   N <- dim(x)[1]
   I <- dim(x)[2]
   
-  set.seed(100)
-  ##################################################################
-  #           global variables
-  ##################################################################
-  
-  # arrays to save the samples with inital values
-  alpha.theta.smpl <- matrix(0 , nrow = mcmc_size, ncol =1)
-  beta.theta.smpl <- matrix(0 , nrow = mcmc_size, ncol =1)
-  theta.smpl <- matrix(0,nrow = mcmc_size, ncol = N)
-  
-  # Other global values
-  # aceptation rate fot hyperparameter
-  accept.rate.h <- c(0,0)
-  # aceptation rate for thetas
-  accept.rate.t <- rep(0, N)
-  
-  
-  ##################################################################
-  #           initial values
-  ##################################################################
-  # First values in the chains
-  
-  # alpha.theta.smpl[1] <-  rgamma(1, shape = 1, rate = lambda.alpha.theta)+1
-  alpha.theta.smpl[1] <-   4.938939
-  
-  # beta.theta.smpl[1]  <-  rgamma(1, shape = 1, rate = lambda.beta.theta)+1
-  beta.theta.smpl[1] <- 6.696828
-  
-  
-  # theta.smpl[1,] <-  rkumar(N, 2, 2.5)
-  theta.smpl[1,] <- c(t(read.csv(file = "/home/mirt/Documentos/Thesis/R/Simulaciones/theta.csv")))
-  
-  
-  # alpha.smpl <-   rgamma(I, shape =1 , rate = lambda.alpha)
-  alpha.smpl<- c(t(read.csv(file = "/home/mirt/Documentos/Thesis/R/Simulaciones/alpha.csv")))
-  
-  # beta.smpl  <-  rgamma(I, shape =1 , rate = lambda.beta)
-  beta.smpl <- c(t(read.csv(file = "/home/mirt/Documentos/Thesis/R/Simulaciones/beta.csv")))
-  
-  
-  # Initial values of proposal distributions
-  
-  alpha.theta.c <- alpha.theta.smpl[1]
-  beta.theta.c <- beta.theta.smpl[1]
-  theta.c <-  theta.smpl[1,]
+
+ 
   
   
   ##################################################################
   #           main loop
   ##################################################################
   
-  # to evaluate the time
-  times <- Sys.time()
-  # the loop
-  
-  for (i in 2:mcmc_size ){
+
+    
     
     #########################################################################
-    # hyperparameters 
-    #########################################################################
+    # item parameters
+    ###################################
+    #
+    # priors
+    # prior of alpha is gamma with shape = mu^2/ var and rate = mu / var
+    # mu = 1 and var = var.alpha
+    theta.smpl<- c(t(read.csv(file = "/home/mirt/Documentos/Thesis/R/Simulaciones/theta.csv")))
+
+   
     
-    
-    # proposal 
-    
-    alpha.theta.c <- rtruncnorm(1, 1, Inf, alpha.theta.smpl[i-1], tao.alpha.theta)
-    
-    beta.theta.c <- rtruncnorm(1, 1, Inf, beta.theta.smpl[i-1], tao.beta.theta)
-    
-    ######################################
-    # compute the numerator
-    ######################################
-    
-    # the prior is gamma with alpha = mu^2 / var, beta = mu^2 / var
-    # mu = 1, var = var.alpha.theta
-    
-    L.post.num.alpha <- dgamma(alpha.theta.c, shape = 1/var.alpha.theta, rate = 1/var.alpha.theta, log = T)
-    + sum(dkumar(theta.smpl[i-1], alpha.theta.c, beta.theta.c, log = TRUE))
-    + log(dtruncnorm(alpha.theta.smpl[i-1], 1, Inf, alpha.theta.c, tao.alpha.theta))
-    
-    
-    L.post.num.beta <- dgamma(beta.theta.c,  shape = 1/var.beta.theta, rate = 1/var.beta.theta, log = T)
-    + sum(dkumar(theta.smpl[i-1], alpha.theta.c, beta.theta.c, log = TRUE))
-    + log(dtruncnorm(beta.theta.smpl[i-1], 1, Inf, beta.theta.c, tao.beta.theta))
-    
-    ######################################
-    # compute the denominator
-    ######################################
-    
-    L.post.den.alpha <- dgamma(alpha.theta.smpl[i-1],  shape = 1/var.alpha.theta, rate = 1/var.alpha.theta, log = T)
-    + sum(dkumar(theta.smpl[i-1], alpha.theta.smpl[i-1], beta.theta.smpl[i-1], log = T))
-    + log(dtruncnorm(alpha.theta.c, 1, Inf, alpha.theta.smpl[i-1], tao.alpha.theta))
-    
-    L.post.den.beta <- dgamma(beta.theta.smpl[i-1],  shape = 1/var.beta.theta, rate = 1/var.beta.theta, log = T)
-    + sum(dkumar(theta.smpl[i-1], alpha.theta.smpl[i-1], beta.theta.smpl[i-1], log = T))
-    + log(dtruncnorm(beta.theta.c, 1, Inf, beta.theta.smpl[i-1], tao.beta.theta))
-    
-    alpha <- exp(L.post.num.alpha - L.post.den.alpha)
-    alpha <- ifelse(alpha>1,1,alpha)
-    
-    beta <- exp(L.post.num.beta - L.post.den.beta)
-    beta <- ifelse(beta>1,1, beta)
-    
-    # test to accept or reject
-    accept.alpha <- ifelse(alpha>runif(1),TRUE,FALSE)
-    accept.rate.h[1] <- accept.rate.h[1] + sum(accept.alpha)
-    
-    accept.beta <- ifelse(beta>runif(1),TRUE,FALSE)
-    accept.rate.h[2] <- accept.rate.h[2] + sum(accept.beta)
-    
-    alpha.theta.smpl[i] <-ifelse(accept.alpha, alpha.theta.c, alpha.theta.smpl[i-1])
-    beta.theta.smpl[i] <-ifelse(accept.beta, beta.theta.c, beta.theta.smpl[i-1])
-    
-    # print("alpha.theta.smpl[i]")
-    # print(alpha.theta.smpl[i])
-    # print("beta.theta.smpl[i] ")
-    # print(beta.theta.smpl[i])
-    
-    #########################################################################
-    # latent traits
-    #########################################################################
-    
-    ######################################
-    # compute the numerator
-    ######################################
-    
-    # the prior of each theta is kumara(theta, alpha.theta, beta.theta)
-    
-    # the proposal values to the  latent trait candidates since kumar
-    # shape1 <- tao.theta
-    # shape2 (vector) where theta.c is median
-    # shape2 <- log(0.5)/log(1-theta.c^(tao.theta))
-    
-    
-    theta.c<-rkumar(N,tao.theta,log(0.5)/log(1-theta.smpl[i-1, ]^(tao.theta)))
-    while(theta.c == 0 || theta.c ==1){
-      theta.c<-rkumar(N,tao.theta,log(0.5)/log(1-theta.smpl[i-1, ]^(tao.theta)))
+    #fx <- function(alpha, beta, var.alpha, var.beta){ 
+    fx <- function(param, var.alpha, var.beta,x,theta.smpl){ 
+      alpha = param[1]
+      beta = param[2]
+    dgamma(alpha,  shape = 1/var.alpha, rate = 1/var.alpha) *
+      dgamma(beta, shape = 1 /var.beta, rate = 1/var.beta) * 
+       sum(ifelse(x, 
+                    pkumar(theta.smpl, alpha, beta),
+                    1- pkumar(theta.smpl, alpha, beta)))
     }
-    print("theta.c")
-    print(theta.c)
+    
+    x0 <- c(runif(1, 1, 50), runif(1, 1, 50) )
     
     
-    aux <- matrix(theta.c,N,I,byrow=FALSE)
-    ####alpha.theta.smpl o alpha.theta.c??
-    L.post.num <- dkumar(theta.c, alpha.theta.smpl[i], beta.theta.smpl[i], log = T)
-    + apply(ifelse (x, log(pkumar(aux, matrix(alpha.smpl, N, I, byrow = T), 
-                                  matrix(beta.smpl, N, I, byrow = T))), 
-                    log(1 - pkumar(aux, alpha.smpl, beta.smpl))),1,sum)
-    + dkumar(theta.smpl[i-1,], tao.theta, log(0.5)/log(1-theta.c^(tao.theta)), log = T)
+
+    #Función que ejecuta el slice sampler
+    #f es la función a muestrear
+    #x0 es el valor inicial dentro del dominio de la función
+    #n es el tamaño de la muestra
+    #En el ejemplo la función es una normal estándar
+    #vamos a suponer que el dominio de la función es el intervalo (-4,4)
     
-    # print("L.post.num")
-    # print(L.post.num)
-    
-    ######################################
-    # compute the denominator
-    ######################################
-    
-    aux <- matrix(theta.smpl[i-1,],N,I,byrow=FALSE)
-    # print("aux")
-    # print(aux)
-    
-    L.post.den <- dkumar(theta.smpl[i-1,], alpha.theta.smpl[i], beta.theta.smpl[i], log = T)
-    + apply(ifelse (x, log(pkumar(aux, matrix(alpha.smpl, N, I, byrow = T), 
-                                  matrix(beta.smpl, N, I, byrow = T))), 
-                    log(1 - pkumar(aux, alpha.smpl, beta.smpl))),1,sum)
-    + dkumar(theta.c, tao.theta, log(0.5)/log(1-theta.smpl[i-1,]^(tao.theta)), log = T)
-    
-    # print("L.post.den")
-    # print(L.post.den)
-    
-    
-    # alpha
-    # maybe, an extra control to avoid division by cero could be neceesary here
-    alpha <-  exp(L.post.num - L.post.den)
-    # print("alpha")
-    # print(alpha)
-    
-    alpha <- ifelse(alpha>1,1,alpha)
-    # test to accept or reject
-    
-    accept <- ifelse(alpha>runif(N),TRUE,FALSE)
-    # print("accept")
-    # print(accept)
-    
-    accept.rate.t <- accept.rate.t + accept
-    theta.smpl[i,] <-ifelse(accept, theta.c, theta.smpl[i-1,])
-    # print("theta.smpl[i,]")
-    # print(theta.smpl[i,])
-    
-    
-    
-    # show the iteration
-    if(show.iteration){
-      cat( i,"\n " )
+    slice.sampler = function(f, x0, mcmc_size,var.alpha,var.beta,x, theta.smpl){
+      chain = matrix(0,nrow = mcmc_size ,ncol = 2)
+      inner.counter = 0
+      for (i in 1:mcmc_size){
+        y = runif(1,0, f(x0,var.alpha,var.beta,x,theta.smpl))
+        found = FALSE
+        c = 0
+        while (!found){
+          x1 <- c(runif(1, 1, 50), runif(1, 1, 50) )
+          if(f(x1,var.alpha,var.beta,x,theta.smpl)>y){
+            found =TRUE
+            chain[i,]<- x1
+            x0 <- x1
+          }
+          c = c+1
+        }
+        inner.counter <- inner.counter+c
+        if(inner.counter %% 1000 == 0){
+          print(inner.counter)
+        }
+      }
+      print(paste("Aceptation rate = ",n / inner.counter,sep = ""))
+      chain
     }
-  }# end for i
+    
+    sample = slice.sampler(f = fx,x0 = x0,mcmc_size = 1000,var.alpha = 1000,var.beta = 1000,x,theta.smpl)
   
   
-  ####################################
-  # show the time
-  #######################################
-  times = Sys.time() - times
-  
-  cat( "\n mcmc cicle time: ",times,"\n")
-  
-  ####################################
-  # return the data
-  #######################################
-  accept.rate.h <- accept.rate.h/(mcmc_size)
-  accept.rate.t <- accept.rate.t/(mcmc_size)
-  
-  l <-  list(alpha.theta.smpl=alpha.theta.smpl, 
-             beta.theta.smpl=beta.theta.smpl, 
-             theta.smpl=theta.smpl,
-             accept.rate.h = accept.rate.h, 
-             accept.rate.t= accept.rate.t
-  )
-  l
-  
-}# end irt.Metropolis
-
-# sink()
-salida <- KKModel(x, 1000, show.iteration = F, 
-                  var.alpha.theta = 1000, var.beta.theta = 1000, 
-                  tao.alpha.theta = 50,tao.beta.theta = 50, 
-                  tao.theta = 10
-)
-salida
-
-
-salida$accept.rate.i
-
-salida$accept.rate.h
+    
