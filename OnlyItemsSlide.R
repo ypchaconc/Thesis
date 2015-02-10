@@ -119,7 +119,7 @@ x<-as.matrix(x)
           print(inner.counter)
         }
       }
-      print(paste("Aceptation rate = ",n / inner.counter,sep = ""))
+      print(paste("Aceptation rate = ",mcmc_size / inner.counter,sep = ""))
       chain
     }
     
